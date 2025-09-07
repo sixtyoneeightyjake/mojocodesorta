@@ -21,6 +21,10 @@ const openai = createOpenAI({
   baseURL: process.env.OPENAI_BASE_URL,
 });
 
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
 // Schema for the AI's search plan - not file selection!
 const searchPlanSchema = z.object({
   editType: z.enum([
@@ -93,28 +97,31 @@ export async function POST(request: NextRequest) {
     console.log('[analyze-edit-intent] Analyzing prompt:', prompt);
     console.log('[analyze-edit-intent] File summary preview:', fileSummary.split('\n').slice(0, 5).join('\n'));
     
-    // Select the appropriate AI model based on the request
-    let aiModel;
-    if (model.startsWith('anthropic/')) {
-      aiModel = anthropic(model.replace('anthropic/', ''));
-    } else if (model.startsWith('openai/')) {
-      if (model.includes('gpt-oss')) {
-        aiModel = groq(model);
-      } else {
-        aiModel = openai(model.replace('openai/', ''));
+    // Resolve to a concrete model instance for the AI SDK
+    const selectedModel = (() => {
+      if (model.startsWith('anthropic/')) {
+        return anthropic(model.replace('anthropic/', ''));
       }
-    } else if (model.startsWith('google/')) {
-      aiModel = createGoogleGenerativeAI(model.replace('google/', ''));
-    } else {
-      // Default to groq if model format is unclear
-      aiModel = groq(model);
-    }
+      if (model.startsWith('google/')) {
+        return google(model.replace('google/', ''));
+      }
+      if (model.startsWith('openai/')) {
+        if (model.includes('gpt-oss')) {
+          // Route Groq-compatible aliases like "openai/gpt-oss-20b" to Groq
+          const actual = model.split('/').pop() || 'gpt-oss-20b';
+          return groq(actual);
+        }
+        return openai(model.replace('openai/', ''));
+      }
+      // Default to Groq for raw model names
+      return groq(model);
+    })();
     
     console.log('[analyze-edit-intent] Using AI model:', model);
     
     // Use AI to create a search plan
     const result = await generateObject({
-      model: aiModel,
+      model: selectedModel,
       schema: searchPlanSchema,
       messages: [
         {

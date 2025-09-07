@@ -15,21 +15,21 @@ export function ThemeLogo() {
     // Return light theme logo by default to avoid hydration mismatch
     return (
       <img
-        src="/firecrawl-logo-with-fire.webp"
-        alt="Firecrawl"
+        src="/mainmojo.png"
+        alt="MojoCode"
         className="h-8 w-auto"
       />
     )
   }
 
   const logoSrc = theme === "dark" 
-    ? "/firecrawl-logo-with-fire-dark.webp" 
-    : "/firecrawl-logo-with-fire.webp"
+    ? "/mainmojo1.png" 
+    : "/mainmojo.png"
 
   return (
     <img
       src={logoSrc}
-      alt="Firecrawl"
+      alt="MojoCode"
       className="h-8 w-auto"
     />
   )
